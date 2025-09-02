@@ -1,2 +1,11 @@
-# WishWall
-WishBoard is a fun, interactive dashboard that makes every milestone count—birthdays, work anniversaries, and personal wins. It sends reminders, and teammates can join in real time with a collaborative wall of wishes, GIFs, and kudos. Like a mix of calendar, social feed, and party wall, it builds connection, joy, and team spirit.
+
+  # Build WishBoard App
+
+  This is a code bundle for Build WishBoard App. The original project is available at https://www.figma.com/design/b8uPfmEzG8yIN71x0Jw4sV/Build-WishBoard-App.
+
+  ## Running the code
+
+  Run `npm i` to install the dependencies.
+
+  Run `npm run dev` to start the development server.
+  
