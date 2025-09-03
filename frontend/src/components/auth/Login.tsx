@@ -1,33 +1,41 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useNotification } from '../../contexts/NotificationContext';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Mail, Lock, Sparkles } from 'lucide-react';
+import React, { useState } from "react";
+import { motion } from "motion/react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNotification } from "../../contexts/NotificationContext";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Mail, Lock, Sparkles } from "lucide-react";
 
 export function Login() {
   const { login, loading } = useAuth();
   const { showError, showSuccess } = useNotification();
   const [formData, setFormData] = useState({
-    email: '',
-    password: ''
+    email: "",
+    password: "",
   });
-  const [errors, setErrors] = useState<{email?: string; password?: string}>({});
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {}
+  );
 
   const validateForm = (): boolean => {
-    const newErrors: {email?: string; password?: string} = {};
+    const newErrors: { email?: string; password?: string } = {};
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = "Invalid email format";
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
@@ -36,34 +44,34 @@ export function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
-      showError('Please fix the errors in the form');
+      showError("Please fix the errors in the form");
       return;
     }
 
     try {
       await login(formData.email, formData.password);
-      showSuccess('Welcome back to WishBoard! 🎉');
+      showSuccess("Welcome back to WishBoard! 🎉");
     } catch (error) {
-      showError('Invalid email or password. Please try again.');
+      showError("Invalid email or password. Please try again.");
     }
   };
 
-  const handleInputChange = (field: 'email' | 'password') => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-    if (errors[field]) {
-      setErrors(prev => ({
+  const handleInputChange =
+    (field: "email" | "password") =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
         ...prev,
-        [field]: undefined
+        [field]: e.target.value,
       }));
-    }
-  };
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: undefined,
+        }));
+      }
+    };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
@@ -128,8 +136,8 @@ export function Login() {
                   type="email"
                   placeholder="john.doe@company.com"
                   value={formData.email}
-                  onChange={handleInputChange('email')}
-                  className={errors.email ? 'border-red-500' : ''}
+                  onChange={handleInputChange("email")}
+                  className={errors.email ? "border-red-500" : ""}
                 />
                 {errors.email && (
                   <p className="text-sm text-red-500">{errors.email}</p>
@@ -147,8 +155,8 @@ export function Login() {
                   type="password"
                   placeholder="••••••••"
                   value={formData.password}
-                  onChange={handleInputChange('password')}
-                  className={errors.password ? 'border-red-500' : ''}
+                  onChange={handleInputChange("password")}
+                  className={errors.password ? "border-red-500" : ""}
                 />
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password}</p>
@@ -160,7 +168,7 @@ export function Login() {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 text-lg"
               >
-                {loading ? 'Signing In...' : 'Sign In 🚀'}
+                {loading ? "Signing In..." : "Sign In 🚀"}
               </Button>
 
               <div className="text-center space-y-2">
@@ -171,7 +179,7 @@ export function Login() {
                   Forgot your password?
                 </Link>
                 <p className="text-sm text-gray-600">
-                  Don't have an account?{' '}
+                  Don't have an account?{" "}
                   <Link
                     to="/signup"
                     className="text-purple-600 hover:text-purple-800 underline"
@@ -183,13 +191,13 @@ export function Login() {
             </form>
 
             {/* Demo credentials */}
-            <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            {/* <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-sm text-purple-800 mb-2">Demo credentials:</p>
               <p className="text-xs text-purple-600">
                 Email: demo@wishboard.com<br />
                 Password: any password
               </p>
-            </div>
+            </div> */}
           </CardContent>
         </Card>
       </motion.div>

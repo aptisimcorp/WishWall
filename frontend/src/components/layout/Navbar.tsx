@@ -92,10 +92,7 @@ export function Navbar() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="relative h-10 w-10 rounded-full"
-                >
+                <div className="relative h-10 w-10 rounded-full cursor-pointer">
                   <Avatar className="h-10 w-10">
                     <AvatarImage
                       src={user?.profilePhoto}
@@ -106,8 +103,9 @@ export function Navbar() {
                       {user?.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
-                </Button>
+                </div>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent className="w-56" align="end">
                 <div className="flex items-center space-x-2 p-2">
                   <Avatar className="h-8 w-8">

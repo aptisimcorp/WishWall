@@ -51,48 +51,33 @@ interface Activity {
 
 export function Dashboard() {
   const { user } = useAuth();
-  // Static mock data for original dashboard design
-  const upcomingMilestones: Milestone[] = [
-    {
-      id: "1",
-      type: "birthday",
-      date: "2024-01-15",
-      user: {
-        id: "2",
-        name: "Sarah Johnson",
-        profilePhoto:
-          "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-        department: "Design",
-      },
-      daysUntil: 3,
-    },
-    {
-      id: "2",
-      type: "work_anniversary",
-      date: "2024-01-18",
-      user: {
-        id: "3",
-        name: "Mike Chen",
-        profilePhoto:
-          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-        department: "Engineering",
-      },
-      daysUntil: 6,
-    },
-    {
-      id: "3",
-      type: "personal_anniversary",
-      date: "2024-01-20",
-      user: {
-        id: "4",
-        name: "Emily Rodriguez",
-        profilePhoto:
-          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-        department: "Marketing",
-      },
-      daysUntil: 8,
-    },
-  ];
+  // Dynamic dashboard counters
+  const [counters, setCounters] = useState({
+    celebrations: 0,
+    teamMembers: 0,
+    whiteboards: 0,
+    milestones: 0,
+  });
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || "";
+    fetch(`${API_URL}/dashboard/counters`)
+      .then((res) => res.json())
+      .then((data) => setCounters(data))
+      .catch(() => {});
+  }, []);
+  // Dynamic upcoming milestones
+  const [upcomingMilestones, setUpcomingMilestones] = useState<Milestone[]>([]);
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || "";
+    fetch(`${API_URL}/dashboard/upcoming-milestones`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.data)) {
+          setUpcomingMilestones(data.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const recentActivity: Activity[] = [
     {
       id: "1",
@@ -199,7 +184,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-purple-100 text-sm">This Month</p>
-                  <p className="text-2xl">12</p>
+                  <p className="text-2xl">{counters.celebrations}</p>
                   <p className="text-sm text-purple-100">Celebrations</p>
                 </div>
                 <Gift className="w-8 h-8 text-purple-200" />
@@ -212,7 +197,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-pink-100 text-sm">Team Members</p>
-                  <p className="text-2xl">47</p>
+                  <p className="text-2xl">{counters.teamMembers}</p>
                   <p className="text-sm text-pink-100">Active</p>
                 </div>
                 <Users className="w-8 h-8 text-pink-200" />
@@ -225,7 +210,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm">Whiteboards</p>
-                  <p className="text-2xl">8</p>
+                  <p className="text-2xl">{counters.whiteboards}</p>
                   <p className="text-sm text-blue-100">Created</p>
                 </div>
                 <MessageSquare className="w-8 h-8 text-blue-200" />
@@ -238,7 +223,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-100 text-sm">Upcoming</p>
-                  <p className="text-2xl">{upcomingMilestones.length}</p>
+                  <p className="text-2xl">{counters.milestones}</p>
                   <p className="text-sm text-green-100">Milestones</p>
                 </div>
                 <Calendar className="w-8 h-8 text-green-200" />
