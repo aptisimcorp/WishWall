@@ -60,16 +60,16 @@ export function Dashboard() {
   });
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || "";
-    fetch(`${API_URL}/dashboard/counters`)
+    fetch(`${API_URL}/counters`)
       .then((res) => res.json())
       .then((data) => setCounters(data))
       .catch(() => {});
   }, []);
   // Dynamic upcoming milestones
-  const [upcomingMilestones, setUpcomingMilestones] = useState<Milestone[]>([]);
+  const [upcomingMilestones, setUpcomingMilestones] = useState([]);
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || "";
-    fetch(`${API_URL}/dashboard/upcoming-milestones`)
+    fetch(`${API_URL}/upcoming-milestones`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data)) {
