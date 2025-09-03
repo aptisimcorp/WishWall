@@ -1,17 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Calendar, Gift, Cake, Heart, Users, Plus, Star, MessageSquare } from 'lucide-react';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import React, { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  Calendar,
+  Gift,
+  Cake,
+  Heart,
+  Users,
+  Plus,
+  Star,
+  MessageSquare,
+} from "lucide-react";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
 
 interface Milestone {
   id: string;
-  type: 'birthday' | 'work_anniversary' | 'personal_anniversary';
+  type: "birthday" | "work_anniversary" | "personal_anniversary";
   date: string;
   user: {
     id: string;
@@ -24,7 +39,7 @@ interface Milestone {
 
 interface Activity {
   id: string;
-  type: 'celebration' | 'whiteboard' | 'milestone';
+  type: "celebration" | "whiteboard" | "milestone";
   title: string;
   description: string;
   time: string;
@@ -36,96 +51,93 @@ interface Activity {
 
 export function Dashboard() {
   const { user } = useAuth();
-  const [upcomingMilestones, setUpcomingMilestones] = useState<Milestone[]>([]);
-  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
-
-  useEffect(() => {
-    // Mock data for upcoming milestones
-    const milestones: Milestone[] = [
-      {
-        id: '1',
-        type: 'birthday',
-        date: '2024-01-15',
-        user: {
-          id: '2',
-          name: 'Sarah Johnson',
-          profilePhoto: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-          department: 'Design'
-        },
-        daysUntil: 3
+  // Static mock data for original dashboard design
+  const upcomingMilestones: Milestone[] = [
+    {
+      id: "1",
+      type: "birthday",
+      date: "2024-01-15",
+      user: {
+        id: "2",
+        name: "Sarah Johnson",
+        profilePhoto:
+          "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
+        department: "Design",
       },
-      {
-        id: '2',
-        type: 'work_anniversary',
-        date: '2024-01-18',
-        user: {
-          id: '3',
-          name: 'Mike Chen',
-          profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-          department: 'Engineering'
-        },
-        daysUntil: 6
+      daysUntil: 3,
+    },
+    {
+      id: "2",
+      type: "work_anniversary",
+      date: "2024-01-18",
+      user: {
+        id: "3",
+        name: "Mike Chen",
+        profilePhoto:
+          "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+        department: "Engineering",
       },
-      {
-        id: '3',
-        type: 'personal_anniversary',
-        date: '2024-01-20',
-        user: {
-          id: '4',
-          name: 'Emily Rodriguez',
-          profilePhoto: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-          department: 'Marketing'
-        },
-        daysUntil: 8
-      }
-    ];
-
-    const activities: Activity[] = [
-      {
-        id: '1',
-        type: 'celebration',
-        title: 'Birthday Celebration',
-        description: 'Alex received 12 birthday wishes!',
-        time: '2 hours ago',
-        user: {
-          name: 'Alex Thompson',
-          profilePhoto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-        }
+      daysUntil: 6,
+    },
+    {
+      id: "3",
+      type: "personal_anniversary",
+      date: "2024-01-20",
+      user: {
+        id: "4",
+        name: "Emily Rodriguez",
+        profilePhoto:
+          "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
+        department: "Marketing",
       },
-      {
-        id: '2',
-        type: 'whiteboard',
-        title: 'New Whiteboard Created',
-        description: 'Team Frontend created a celebration board',
-        time: '4 hours ago',
-        user: {
-          name: 'Team Frontend',
-        }
+      daysUntil: 8,
+    },
+  ];
+  const recentActivity: Activity[] = [
+    {
+      id: "1",
+      type: "celebration",
+      title: "Birthday Celebration",
+      description: "Alex received 12 birthday wishes!",
+      time: "2 hours ago",
+      user: {
+        name: "Alex Thompson",
+        profilePhoto:
+          "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
       },
-      {
-        id: '3',
-        type: 'milestone',
-        title: 'Work Anniversary',
-        description: 'Lisa completed 5 years with the company!',
-        time: '1 day ago',
-        user: {
-          name: 'Lisa Park',
-          profilePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
-        }
-      }
-    ];
-
-    setUpcomingMilestones(milestones);
-    setRecentActivity(activities);
-  }, []);
+    },
+    {
+      id: "2",
+      type: "whiteboard",
+      title: "New Whiteboard Created",
+      description: "Team Frontend created a celebration board",
+      time: "4 hours ago",
+      user: {
+        name: "Team Frontend",
+      },
+    },
+    {
+      id: "3",
+      type: "milestone",
+      title: "Work Anniversary",
+      description: "Lisa completed 5 years with the company!",
+      time: "1 day ago",
+      user: {
+        name: "Lisa Park",
+        profilePhoto:
+          "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face",
+      },
+    },
+  ];
+  // ...existing code for rendering the dashboard UI...
 
   const getMilestoneIcon = (type: string) => {
     switch (type) {
-      case 'birthday':
+      case "birthday":
         return <Cake className="w-4 h-4 text-pink-500" />;
-      case 'work_anniversary':
+      case "work_anniversary":
         return <Star className="w-4 h-4 text-purple-500" />;
-      case 'personal_anniversary':
+      case "personal_anniversary":
         return <Heart className="w-4 h-4 text-red-500" />;
       default:
         return <Gift className="w-4 h-4 text-blue-500" />;
@@ -134,24 +146,24 @@ export function Dashboard() {
 
   const getMilestoneLabel = (type: string) => {
     switch (type) {
-      case 'birthday':
-        return 'Birthday';
-      case 'work_anniversary':
-        return 'Work Anniversary';
-      case 'personal_anniversary':
-        return 'Personal Anniversary';
+      case "birthday":
+        return "Birthday";
+      case "work_anniversary":
+        return "Work Anniversary";
+      case "personal_anniversary":
+        return "Personal Anniversary";
       default:
-        return 'Milestone';
+        return "Milestone";
     }
   };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'celebration':
+      case "celebration":
         return <Gift className="w-4 h-4 text-purple-500" />;
-      case 'whiteboard':
+      case "whiteboard":
         return <MessageSquare className="w-4 h-4 text-blue-500" />;
-      case 'milestone':
+      case "milestone":
         return <Star className="w-4 h-4 text-yellow-500" />;
       default:
         return <Calendar className="w-4 h-4 text-gray-500" />;
@@ -272,7 +284,12 @@ export function Dashboard() {
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-10 w-10">
                           <AvatarImage src={milestone.user.profilePhoto} />
-                          <AvatarFallback>{milestone.user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          <AvatarFallback>
+                            {milestone.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="text-sm">{milestone.user.name}</p>
@@ -290,8 +307,12 @@ export function Dashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-purple-600">{milestone.daysUntil} days</p>
-                        <p className="text-xs text-gray-500">{milestone.date}</p>
+                        <p className="text-sm text-purple-600">
+                          {milestone.daysUntil} days
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {milestone.date}
+                        </p>
                       </div>
                     </motion.div>
                   ))}
@@ -339,9 +360,7 @@ export function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  What's happening in your team
-                </CardDescription>
+                <CardDescription>What's happening in your team</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -358,14 +377,21 @@ export function Dashboard() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm">{activity.title}</p>
-                        <p className="text-xs text-gray-500">{activity.description}</p>
-                        <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
+                        <p className="text-xs text-gray-500">
+                          {activity.description}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {activity.time}
+                        </p>
                       </div>
                       {activity.user.profilePhoto && (
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={activity.user.profilePhoto} />
                           <AvatarFallback className="text-xs">
-                            {activity.user.name.split(' ').map(n => n[0]).join('')}
+                            {activity.user.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
                           </AvatarFallback>
                         </Avatar>
                       )}

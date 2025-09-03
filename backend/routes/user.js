@@ -15,6 +15,10 @@ router.post("/", async (req, res) => {
   try {
     const container = getUserContainer(req);
     const user = req.body;
+    // Ensure user has an 'id' field
+    if (!user.id) {
+      user.id = Date.now().toString();
+    }
     // Check if user already exists
     const query = {
       query: "SELECT * FROM c WHERE c.email = @email",
