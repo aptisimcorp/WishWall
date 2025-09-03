@@ -1,15 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { NotificationProvider } from './contexts/NotificationContext';
-import { Login } from './components/auth/Login';
-import { Signup } from './components/auth/Signup';
-import { Dashboard } from './components/dashboard/Dashboard';
-import { Whiteboard } from './components/whiteboard/Whiteboard';
-import { SocialFeed } from './components/social/SocialFeed';
-import { Navbar } from './components/layout/Navbar';
-import { LoadingSpinner } from './components/ui/LoadingSpinner';
-import { Toaster } from './components/ui/sonner';
+import React, { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { Login } from "./components/auth/Login";
+import { Signup } from "./components/auth/Signup";
+import { Dashboard } from "./components/dashboard/Dashboard";
+import Whiteboard from "./components/whiteboard/Whiteboard";
+import { SocialFeed } from "./components/social/SocialFeed";
+import { Navbar } from "./components/layout/Navbar";
+import { LoadingSpinner } from "./components/ui/LoadingSpinner";
+import { Toaster } from "./components/ui/sonner";
 
 function AppContent() {
   const { user, loading } = useAuth();
