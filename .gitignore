@@ -1,0 +1,44 @@
+# Node.js specific ignores
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.DS_Store
+dist/
+build/
+coverage/
+
+# React specific ignores (if applicable, though some are covered by Node.js)
+# build/ is already covered by Node.js section
+# You might have specific build outputs for React if not integrated with a Node.js build process
+# For Create React App, 'build/' is the default output.
+
+# IDE and OS specific ignores
+.vscode/
+*.iml
+.idea/
+.project
+.classpath
+.c9/
+*.swp
+*.swo
+*~
+# macOS specific
+.DS_Store
+.Trashes
+Thumbs.db # Windows specific
+
+# Log files
+*.log
+
+# Test coverage reports
+lcov-report/
+
+# TypeScript specific (if applicable)
+*.tsbuildinfo
+
+# Editor specific files (e.g., Sublime Text, Vim)
+*.sublime-project
+*.sublime-workspace
+.history/
