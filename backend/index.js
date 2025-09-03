@@ -1,13 +1,26 @@
 import express from "express";
+import cors from "cors";
 import { CosmosClient } from "@azure/cosmos";
 import dotenv from "dotenv";
 import userRouter from "./routes/user.js";
 import profileRouter from "./routes/profile.js";
+import dashboardRouter from "./routes/dashboard.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Enable CORS for frontend
+app.use(
+  cors({
+    origin: true, // Allow all origins for development
+    credentials: true,
+  })
+);
+
+// Allow preflight requests for all routes
+app.options("*", cors());
 
 app.use(express.json());
 
@@ -38,6 +51,9 @@ app.use("/api/users", userRouter);
 
 // Profile image upload and update API
 app.use("/api/profile", profileRouter);
+
+// Dashboard API
+app.use("/api/dashboard", dashboardRouter);
 
 // Sample wishes API
 app.get("/api/wishes", (req, res) => {

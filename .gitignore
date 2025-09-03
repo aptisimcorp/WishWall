@@ -1,3 +1,5 @@
+# Node modules
+node_modules/
 # Node.js specific ignores
 node_modules/
 npm-debug.log*
@@ -42,3 +44,5 @@ lcov-report/
 *.sublime-project
 *.sublime-workspace
 .history/
+frontend/node_modules\
+backend/node_modules

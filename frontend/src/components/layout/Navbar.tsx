@@ -1,37 +1,38 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '../ui/dropdown-menu';
-import { 
-  Calendar, 
-  MessageSquare, 
-  PaintBucket, 
-  Bell, 
-  Settings, 
-  LogOut, 
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
+import { useAuth } from "../../contexts/AuthContext";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import {
+  Calendar,
+  MessageSquare,
+  PaintBucket,
+  Bell,
+  Settings,
+  LogOut,
   Sparkles,
   Menu,
-  X
-} from 'lucide-react';
+  X,
+} from "lucide-react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Calendar },
-    { name: 'Social Feed', href: '/feed', icon: MessageSquare },
-    { name: 'Whiteboards', href: '/whiteboards', icon: PaintBucket },
+    { name: "Dashboard", href: "/dashboard", icon: Calendar },
+    { name: "Social Feed", href: "/feed", icon: MessageSquare },
+    { name: "Whiteboards", href: "/whiteboards", icon: PaintBucket },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -39,6 +40,7 @@ export function Navbar() {
   const handleLogout = () => {
     logout();
     setMobileMenuOpen(false);
+    navigate("/login");
   };
 
   return (
@@ -69,8 +71,8 @@ export function Navbar() {
                   to={item.href}
                   className={`px-4 py-2 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
                     isActive(item.href)
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
+                      ? "bg-purple-100 text-purple-700"
+                      : "text-gray-600 hover:text-purple-600 hover:bg-purple-50"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -79,7 +81,6 @@ export function Navbar() {
               );
             })}
           </nav>
-
           {/* Right side */}
           <div className="flex items-center space-x-4">
             {/* Notifications */}
@@ -91,11 +92,18 @@ export function Navbar() {
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 rounded-full"
+                >
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={user?.profilePhoto} alt={user?.firstName} />
+                    <AvatarImage
+                      src={user?.profilePhoto}
+                      alt={user?.firstName}
+                    />
                     <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      {user?.firstName?.[0]}
+                      {user?.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -103,13 +111,19 @@ export function Navbar() {
               <DropdownMenuContent className="w-56" align="end">
                 <div className="flex items-center space-x-2 p-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.profilePhoto} alt={user?.firstName} />
+                    <AvatarImage
+                      src={user?.profilePhoto}
+                      alt={user?.firstName}
+                    />
                     <AvatarFallback className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm">
-                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      {user?.firstName?.[0]}
+                      {user?.lastName?.[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm">{user?.firstName} {user?.lastName}</p>
+                    <p className="text-sm">
+                      {user?.firstName} {user?.lastName}
+                    </p>
                     <p className="text-xs text-gray-500">{user?.email}</p>
                   </div>
                 </div>
@@ -124,6 +138,16 @@ export function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Desktop Logout Button */}
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="hidden md:inline-flex items-center gap-2 text-gray-600 hover:text-red-600 border border-gray-300"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </Button>
 
             {/* Mobile menu button */}
             <Button
@@ -160,8 +184,8 @@ export function Navbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className={`block px-4 py-3 rounded-lg transition-all duration-200 flex items-center space-x-2 ${
                     isActive(item.href)
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
+                      ? "bg-purple-100 text-purple-700"
+                      : "text-gray-600 hover:text-purple-600 hover:bg-purple-50"
                   }`}
                 >
                   <Icon className="w-4 h-4" />

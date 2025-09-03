@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 export interface User {
   id: string;
@@ -36,53 +36,60 @@ export interface SignupData {
   team?: string;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext(undefined);
 
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: any }) {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simulate checking for existing session
-    const savedUser = localStorage.getItem('wishboard-user');
+    const savedUser = localStorage.getItem("wishboard-user");
     if (savedUser) {
       setUser(JSON.parse(savedUser));
     }
     setLoading(false);
   }, []);
 
+  // TypeScript fix for import.meta.env
+  interface ImportMetaEnv {
+    VITE_API_URL: string;
+  }
+  interface ImportMeta {
+    env: ImportMetaEnv;
+  }
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock user data
-      const mockUser: User = {
-        id: '1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email,
-        birthday: '1990-05-15',
-        workAnniversary: '2020-03-10',
-        department: 'Engineering',
-        team: 'Frontend',
-        createdAt: new Date().toISOString(),
-        profilePhoto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-      };
-      
-      setUser(mockUser);
-      localStorage.setItem('wishboard-user', JSON.stringify(mockUser));
-    } catch (error) {
-      throw new Error('Login failed');
+      const response = await fetch(`${API_URL}/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Login failed");
+      }
+      const data = await response.json();
+      setUser(data.user);
+      localStorage.setItem("wishboard-user", JSON.stringify(data.user));
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+    } catch (error: any) {
+      throw new Error(error.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -91,27 +98,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signup = async (userData: SignupData) => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        email: userData.email,
-        birthday: userData.birthday,
-        personalAnniversary: userData.personalAnniversary,
-        workAnniversary: userData.workAnniversary,
-        department: userData.department,
-        team: userData.team,
-        createdAt: new Date().toISOString(),
-        profilePhoto: userData.profilePhoto ? URL.createObjectURL(userData.profilePhoto) : undefined
+      let profilePhotoUrl: string | undefined = undefined;
+      if (userData.profilePhoto) {
+        // Upload profile photo first
+        const formData = new FormData();
+        formData.append("profilepicture", userData.profilePhoto);
+        const uploadRes = await fetch(`${API_URL}/profile/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!uploadRes.ok) {
+          const errorData = await uploadRes.json();
+          throw new Error(errorData.error || "Profile photo upload failed");
+        }
+        const uploadData = await uploadRes.json();
+        profilePhotoUrl = uploadData.url;
+      }
+
+      // Prepare user data for signup
+      const signupPayload = {
+        ...userData,
+        profilePhoto: profilePhotoUrl,
       };
-      
-      setUser(newUser);
-      localStorage.setItem('wishboard-user', JSON.stringify(newUser));
-    } catch (error) {
-      throw new Error('Signup failed');
+      // Remove profilePhoto file from payload if it's a File
+      if (
+        signupPayload.profilePhoto &&
+        typeof signupPayload.profilePhoto === "object" &&
+        "size" in signupPayload.profilePhoto
+      ) {
+        delete signupPayload.profilePhoto;
+      }
+
+      const response = await fetch(`${API_URL}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(signupPayload),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Signup failed");
+      }
+      const data = await response.json();
+      setUser(data.user);
+      localStorage.setItem("wishboard-user", JSON.stringify(data.user));
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+      }
+    } catch (error: any) {
+      throw new Error(error.message || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -119,22 +155,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('wishboard-user');
+    localStorage.removeItem("wishboard-user");
+    localStorage.removeItem("token");
   };
 
   const updateProfile = async (data: Partial<User>) => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      localStorage.setItem('wishboard-user', JSON.stringify(updatedUser));
+      localStorage.setItem("wishboard-user", JSON.stringify(updatedUser));
     } catch (error) {
-      throw new Error('Profile update failed');
+      throw new Error("Profile update failed");
     } finally {
       setLoading(false);
     }
@@ -146,12 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     logout,
-    updateProfile
+    updateProfile,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
