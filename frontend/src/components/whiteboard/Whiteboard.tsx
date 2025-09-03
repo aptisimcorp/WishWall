@@ -9,27 +9,8 @@ import { Input } from '../ui/input';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
-import { 
-  Pen, 
-  Square, 
-  Circle, 
-  Type, 
-  StickyNote, 
-  Image as ImageIcon, 
-  Smile, 
-  Undo, 
-  Redo, 
-  Download, 
-  Share2, 
-  Users, 
-  Palette,
-  Trash2,
-  ZoomIn,
-  ZoomOut,
-  Move,
-  ArrowLeft,
-  Save
-} from 'lucide-react';
+import { Pen, Square, Circle, Type, StickyNote, Image as ImageIcon, Smile, Undo, Redo, Download, Share2, Users, Palette, Trash2, ZoomIn, ZoomOut, Move, ArrowLeft, Save } from 'lucide-react';
+import io from 'socket.io-client';
 
 interface WhiteboardElement {
   id: string;
@@ -60,15 +41,16 @@ export function Whiteboard() {
   const { user } = useAuth();
   const { showSuccess, showInfo } = useNotification();
   
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedTool, setSelectedTool] = useState<string>('move');
-  const [selectedColor, setSelectedColor] = useState('#8B5CF6');
+  const [selectedColor, setSelectedColor] = useState<string>('#8B5CF6');
   const [elements, setElements] = useState<WhiteboardElement[]>([]);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
-  const [zoom, setZoom] = useState(1);
-  const [showStickyNoteDialog, setShowStickyNoteDialog] = useState(false);
-  const [newStickyNote, setNewStickyNote] = useState('');
-  const [stickyNotePosition, setStickyNotePosition] = useState({ x: 0, y: 0 });
+  const socketRef = useRef<any>(null);
+  const [zoom, setZoom] = useState<number>(1);
+  const [showStickyNoteDialog, setShowStickyNoteDialog] = useState<boolean>(false);
+  const [newStickyNote, setNewStickyNote] = useState<string>('');
+  const [stickyNotePosition, setStickyNotePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const tools = [
     { id: 'move', icon: Move, label: 'Move' },
@@ -92,79 +74,40 @@ export function Whiteboard() {
   ];
 
   useEffect(() => {
-    // Mock active users
-    const mockUsers: ActiveUser[] = [
-      {
-        id: '2',
-        name: 'Sarah Johnson',
-        profilePhoto: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-        color: '#EC4899',
-        cursor: { x: 200, y: 150 }
-      },
-      {
-        id: '3',
-        name: 'Mike Chen',
-        profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-        color: '#10B981',
-        cursor: { x: 400, y: 300 }
-      }
-    ];
+    // Connect to socket.io backend
+    socketRef.current = io('http://localhost:5000');
+    if (eventId) {
+        if (socketRef.current) {
+          socketRef.current.emit('joinBoard', eventId);
+        }
+    }
 
-    // Mock existing elements
-    const mockElements: WhiteboardElement[] = [
-      {
-        id: '1',
-        type: 'sticky_note',
-        x: 100,
-        y: 100,
-        width: 200,
-        height: 150,
-        content: 'Happy Birthday Sarah! 🎉\n\nHope you have an amazing day filled with joy and celebration!',
-        color: '#FEF08A',
-        author: {
-          name: 'John Doe',
-          profilePhoto: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-        },
-        timestamp: '2 hours ago'
-      },
-      {
-        id: '2',
-        type: 'sticky_note',
-        x: 350,
-        y: 80,
-        width: 180,
-        height: 120,
-        content: 'You are such an inspiration to the entire design team! Thank you for all your mentorship 💖',
-        color: '#FECACA',
-        author: {
-          name: 'Emily Rodriguez',
-          profilePhoto: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-        },
-        timestamp: '1 hour ago'
-      },
-      {
-        id: '3',
-        type: 'sticky_note',
-        x: 150,
-        y: 300,
-        width: 220,
-        height: 100,
-        content: 'Wishing you all the best on your special day! 🎂🎈',
-        color: '#DBEAFE',
-        author: {
-          name: 'Alex Thompson',
-        },
-        timestamp: '30 minutes ago'
-      }
-    ];
+    // Fetch initial board data
+    fetch(`/api/whiteboard/${eventId}`)
+      .then(res => res.json())
+      .then(data => {
+        setElements(data.elements || []);
+        setActiveUsers(data.users || []);
+      });
 
-    setActiveUsers(mockUsers);
-    setElements(mockElements);
-  }, []);
+    // Listen for real-time updates
+      if (socketRef.current) {
+        socketRef.current.on('elementUpdate', ({ elements, users }) => {
+          setElements(elements);
+          setActiveUsers(users);
+        });
+      }
+
+    return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+        }
+    };
+  }, [eventId]);
 
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (selectedTool === 'sticky') {
-      const rect = canvasRef.current?.getBoundingClientRect();
+      const rect = canvasRef.current ? canvasRef.current.getBoundingClientRect() : null;
       if (rect) {
         const x = (e.clientX - rect.left) / zoom;
         const y = (e.clientY - rect.top) / zoom;
@@ -174,7 +117,7 @@ export function Whiteboard() {
     }
   };
 
-  const handleAddStickyNote = () => {
+  const handleAddStickyNote = async () => {
     if (!newStickyNote.trim()) return;
 
     const element: WhiteboardElement = {
@@ -190,18 +133,49 @@ export function Whiteboard() {
         name: `${user?.firstName} ${user?.lastName}` || 'Anonymous',
         profilePhoto: user?.profilePhoto
       },
-      timestamp: 'now'
+      timestamp: new Date().toISOString()
     };
 
-    setElements(prev => [...prev, element]);
+    const updatedElements = [...elements, element];
+    setElements(updatedElements);
     setNewStickyNote('');
     setShowStickyNoteDialog(false);
     showSuccess('Sticky note added! 📝');
+
+    // Emit update to backend
+      if (socketRef.current) {
+        socketRef.current.emit('elementUpdate', {
+          eventId,
+          elements: updatedElements,
+          users: activeUsers
+        });
+      }
+
+    // Persist to backend
+    await fetch(`/api/whiteboard/${eventId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ elements: updatedElements, users: activeUsers })
+    });
   };
 
-  const handleDeleteElement = (elementId: string) => {
-    setElements(prev => prev.filter(el => el.id !== elementId));
+  const handleDeleteElement = async (elementId: string) => {
+    const updatedElements = elements.filter(el => el.id !== elementId);
+    setElements(updatedElements);
     showInfo('Element removed');
+
+      if (socketRef.current) {
+        socketRef.current.emit('elementUpdate', {
+          eventId,
+          elements: updatedElements,
+          users: activeUsers
+        });
+      }
+    await fetch(`/api/whiteboard/${eventId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ elements: updatedElements, users: activeUsers })
+    });
   };
 
   const handleZoomIn = () => {
@@ -212,7 +186,12 @@ export function Whiteboard() {
     setZoom(prev => Math.max(prev - 0.1, 0.5));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    await fetch(`/api/whiteboard/${eventId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ elements, users: activeUsers })
+    });
     showSuccess('Whiteboard saved! 💾');
   };
 
