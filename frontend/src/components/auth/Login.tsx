@@ -22,9 +22,7 @@ export function Login() {
     email: "",
     password: "",
   });
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
+  const [errors, setErrors] = useState({});
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
@@ -42,7 +40,7 @@ export function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -58,20 +56,18 @@ export function Login() {
     }
   };
 
-  const handleInputChange =
-    (field: "email" | "password") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData((prev) => ({
+  const handleInputChange = (field: "email" | "password") => (e: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }));
+    if (errors[field]) {
+      setErrors((prev) => ({
         ...prev,
-        [field]: e.target.value,
+        [field]: undefined,
       }));
-      if (errors[field]) {
-        setErrors((prev) => ({
-          ...prev,
-          [field]: undefined,
-        }));
-      }
-    };
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">

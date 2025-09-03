@@ -3,8 +3,185 @@ import { CosmosClient } from "@azure/cosmos";
 import dotenv from "dotenv";
 dotenv.config();
 import { authenticateJWT } from "../middleware/auth.js";
+import { BlobServiceClient } from "@azure/storage-blob";
+import multer from "multer";
 
 const router = express.Router();
+
+const blobServiceClient = BlobServiceClient.fromConnectionString(
+  process.env.AZURE_STORAGE_CONNECTION_STRING
+);
+const socialContainerClient = blobServiceClient.getContainerClient(
+  process.env.AZURE_STORAGE_CONTAINER_NAME
+);
+const upload = multer({ storage: multer.memoryStorage() });
+
+// GET /api/socialfeed - fetch all social feed posts
+router.get("/socialfeed", async (req, res) => {
+  try {
+    const { socialFeedContainer } = req.app.settings;
+    if (!socialFeedContainer) {
+      return res
+        .status(500)
+        .json({ error: "Social feed container not initialized" });
+    }
+    const { resources: posts } = await socialFeedContainer.items
+      .query({ query: "SELECT * FROM c", parameters: [] })
+      .fetchAll();
+    // Sort by newest first
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ success: true, data: posts });
+  } catch (err) {
+    console.error("Fetch social feed error:", err);
+    res.status(500).json({ error: "Failed to fetch posts" });
+  }
+});
+// --- Social Feed Post API ---
+// PATCH /api/socialfeed/:postId/like - update likes for a post
+router.patch("/socialfeed/:postId/like", async (req, res) => {
+  try {
+    const { socialFeedContainer } = req.app.settings;
+    if (!socialFeedContainer) {
+      return res
+        .status(500)
+        .json({ error: "Social feed container not initialized" });
+    }
+    const postId = req.params.postId;
+    const { like } = req.body; // true to like, false to unlike
+    const { resource: post } = await socialFeedContainer
+      .item(postId, postId)
+      .read();
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+    post.likes = typeof post.likes === "number" ? post.likes : 0;
+    if (like) {
+      post.likes += 1;
+    } else {
+      post.likes = Math.max(0, post.likes - 1);
+    }
+    await socialFeedContainer.items.upsert(post);
+    res.json({ success: true, likes: post.likes });
+  } catch (err) {
+    console.error("Update like error:", err);
+    res.status(500).json({ error: "Failed to update like" });
+  }
+});
+// --- Social Feed Comments API ---
+
+// POST /api/socialfeed/:postId/comment - add a comment to a post
+router.post("/socialfeed/:postId/comment", async (req, res) => {
+  try {
+    const { socialFeedContainer } = req.app.settings;
+    if (!socialFeedContainer) {
+      return res
+        .status(500)
+        .json({ error: "Social feed container not initialized" });
+    }
+    const postId = req.params.postId;
+    const { userId, userName, userProfilePhoto, text } = req.body;
+    if (!text || !userId) {
+      return res
+        .status(400)
+        .json({ error: "Missing comment text or user info" });
+    }
+    // Fetch post
+    const { resource: post } = await socialFeedContainer
+      .item(postId, postId)
+      .read();
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+    // Add comment
+    const comment = {
+      id: Date.now().toString(),
+      userId,
+      userName,
+      userProfilePhoto,
+      text,
+      createdAt: new Date().toISOString(),
+    };
+    post.comments = post.comments || [];
+    post.comments.push(comment);
+    await socialFeedContainer.items.upsert(post);
+    res.json({ success: true, data: comment });
+  } catch (err) {
+    console.error("Add comment error:", err);
+    res.status(500).json({ error: "Failed to add comment" });
+  }
+});
+
+// GET /api/socialfeed/:postId/comments - fetch comments for a post
+router.get("/socialfeed/:postId/comments", async (req, res) => {
+  try {
+    const { socialFeedContainer } = req.app.settings;
+    if (!socialFeedContainer) {
+      return res
+        .status(500)
+        .json({ error: "Social feed container not initialized" });
+    }
+    const postId = req.params.postId;
+    const { resource: post } = await socialFeedContainer
+      .item(postId, postId)
+      .read();
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+    res.json({ success: true, data: post.comments || [] });
+  } catch (err) {
+    console.error("Fetch comments error:", err);
+    res.status(500).json({ error: "Failed to fetch comments" });
+  }
+});
+
+// POST /api/socialfeed - create a new social feed post (with image/gif upload)
+router.post("/socialfeed", upload.array("files"), async (req, res) => {
+  try {
+    // Save images/gifs to Azure Blob if files are present
+    let mediaUrls = [];
+    if (req.files && Array.isArray(req.files)) {
+      for (const file of req.files) {
+        const blobName = Date.now() + "-" + file.originalname;
+        const blockBlobClient =
+          socialContainerClient.getBlockBlobClient(blobName);
+        await blockBlobClient.uploadData(file.buffer, {
+          blobHTTPHeaders: { blobContentType: file.mimetype },
+        });
+        mediaUrls.push(blockBlobClient.url);
+      }
+    }
+
+    // Save post in Cosmos DB
+    const post = {
+      id: Date.now().toString(),
+      userId: req.body.userId,
+      userName: req.body.userName || "User",
+      userProfilePhoto: req.body.userProfilePhoto || "",
+      userDepartment: req.body.userDepartment || "",
+      text: req.body.text,
+      mediaUrls, // array of image/gif urls
+      mediaType: req.files && req.files[0] ? req.files[0].mimetype : "",
+      createdAt: new Date().toISOString(),
+      tags: req.body.tags
+        ? Array.isArray(req.body.tags)
+          ? req.body.tags
+          : [req.body.tags]
+        : [],
+    };
+    // Use socialFeedContainer from index.js
+    const { socialFeedContainer } = req.app.settings;
+    if (!socialFeedContainer) {
+      return res
+        .status(500)
+        .json({ error: "Social feed container not initialized" });
+    }
+    await socialFeedContainer.items.create(post);
+    res.json({ success: true, data: post });
+  } catch (err) {
+    console.error("Social feed post error:", err);
+    res.status(500).json({ error: "Failed to save post" });
+  }
+});
 
 // Cosmos DB setup
 const endpoint = process.env.COSMOS_ENDPOINT;

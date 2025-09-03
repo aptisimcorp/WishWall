@@ -33,9 +33,11 @@ const cosmosClient = new CosmosClient({
   endpoint: process.env.COSMOS_ENDPOINT,
   key: process.env.COSMOS_KEY,
 });
+
 const databaseId = process.env.COSMOS_DATABASE_ID || "hackathon-db";
 const containerId = "ww_whiteboard";
 let whiteboardContainer;
+let socialFeedContainer;
 
 // 🔹 Ensure DB & Container exist
 async function initCosmos() {
@@ -51,6 +53,16 @@ async function initCosmos() {
     });
     console.log(`✅ Cosmos Container: ${container.id}`);
     whiteboardContainer = container;
+
+    // Create social feed container if not exists
+    const { container: socialContainer } =
+      await database.containers.createIfNotExists({
+        id: "ww_socialfeed",
+        partitionKey: { paths: ["/id"], kind: "Hash" },
+      });
+    console.log(`✅ Cosmos Container: ${socialContainer.id}`);
+    socialFeedContainer = socialContainer;
+    app.set("socialFeedContainer", socialFeedContainer);
 
     // Optional: Seed a welcome note if board is empty
     const { resources } = await container.items
@@ -155,7 +167,7 @@ io.on("connection", async (socket) => {
 // Existing APIs
 app.use("/api/users", userRouter);
 app.use("/api/profile", profileRouter);
-app.use("/api/dashboard", dashboardRouter);
+app.use("/api", dashboardRouter);
 
 // Server start is now delayed until Cosmos DB is initialized
 
