@@ -77,8 +77,9 @@ const Whiteboard = () => {
   // Effects
   // -----------------------------
   useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL || "";
     if (eventId && eventId !== "new") {
-      fetch(`/api/whiteboard/${eventId}`)
+      fetch(`${API_URL}/whiteboard/${eventId}`)
         .then((res) => res.json())
         .then((data) => {
           setTitle(data.title || "Untitled Whiteboard");
@@ -96,8 +97,11 @@ const Whiteboard = () => {
 
   // Save whiteboard helper for API calls after note changes
   const saveWhiteboard = (updatedElements) => {
+    const API_URL = import.meta.env.VITE_API_URL || "";
     const isNew = eventId === "new";
-    const url = isNew ? "/api/whiteboard" : `/api/whiteboard/${eventId}`;
+    const url = isNew
+      ? `${API_URL}/whiteboard`
+      : `${API_URL}/whiteboard/${eventId}`;
     const method = isNew ? "POST" : "PUT";
     fetch(url, {
       method,
@@ -130,8 +134,11 @@ const Whiteboard = () => {
   // -----------------------------
   const handleSave = () => {
     setSaving(true);
+    const API_URL = import.meta.env.VITE_API_URL || "";
     const isNew = eventId === "new";
-    const url = isNew ? "/api/whiteboard" : `/api/whiteboard/${eventId}`;
+    const url = isNew
+      ? `${API_URL}/whiteboard`
+      : `${API_URL}/whiteboard/${eventId}`;
     const method = isNew ? "POST" : "PUT";
     fetch(url, {
       method,
