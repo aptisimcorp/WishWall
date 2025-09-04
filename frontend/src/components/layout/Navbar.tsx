@@ -32,7 +32,7 @@ export function Navbar() {
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: Calendar },
     { name: "Social Feed", href: "/feed", icon: MessageSquare },
-    { name: "Whiteboards", href: "/whiteboards", icon: PaintBucket },
+    { name: "Whiteboards", href: "/whiteboard", icon: PaintBucket },
   ];
 
   const isActive = (path: string) => location.pathname === path;

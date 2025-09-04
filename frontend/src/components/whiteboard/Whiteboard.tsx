@@ -7,128 +7,136 @@ import { Button } from "../ui/button";
 import { Plus, Smile, ImagePlus, Trash } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 
-// Note type
-interface Note {
+
+// Whiteboard object type
+type ObjectType = "note" | "image" | "drawing" | "shape";
+interface WhiteboardObject {
   id: string;
+  type: ObjectType;
   x: number;
   y: number;
-  width: number;
-  height: number;
-  content: string;
-  type: "text" | "emoji" | "gif";
+  width?: number;
+  height?: number;
+  color?: string;
+  content?: string;
+  imageUrl?: string;
+  shapeType?: string;
+  points?: Array<{ x: number; y: number }>;
 }
 
-const Whiteboard: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // 🔌 Load notes from server
+const Whiteboard = () => {
+  const [objects, setObjects] = useState([]);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [tool, setTool] = useState("note");
+  const [drawing, setDrawing] = useState(null);
+
+  // 🔌 Load objects from server
   useEffect(() => {
     socket.on("connect", () => {
       console.log("✅ Connected to socket server", socket.id);
     });
-
     socket.on("disconnect", () => {
       console.log("❌ Disconnected from socket server");
     });
-
-    socket.on("loadNotes", (serverNotes: Note[]) => {
-      setNotes(serverNotes);
+    socket.on("loadObjects", (serverObjects: WhiteboardObject[]) => {
+      setObjects(serverObjects);
     });
-
-    socket.on("noteAdded", (note: Note) => {
-      setNotes((prev) => [...prev, note]);
+    socket.on("objectAdded", (object: WhiteboardObject) => {
+      setObjects((prev) => [...prev, object]);
     });
-
-    socket.on("noteUpdated", (updatedNote: Note) => {
-      setNotes((prev) =>
-        prev.map((n) => (n.id === updatedNote.id ? updatedNote : n))
+    socket.on("objectUpdated", (updatedObject: WhiteboardObject) => {
+      setObjects((prev) =>
+        prev.map((o) => (o.id === updatedObject.id ? updatedObject : o))
       );
     });
-
-    socket.on("noteDeleted", (noteId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+    socket.on("objectDeleted", (objectId: string) => {
+      setObjects((prev) => prev.filter((o) => o.id !== objectId));
     });
-
     return () => {
       socket.off("connect");
       socket.off("disconnect");
-      socket.off("loadNotes");
-      socket.off("noteAdded");
-      socket.off("noteUpdated");
-      socket.off("noteDeleted");
+      socket.off("loadObjects");
+      socket.off("objectAdded");
+      socket.off("objectUpdated");
+      socket.off("objectDeleted");
     };
   }, []);
 
-  // 🔨 Add a new sticky note
+
+  // Add a new sticky note
   const addNote = () => {
-    const newNote: Note = {
+    const newObj: WhiteboardObject = {
       id: Date.now().toString(),
+      type: "note",
       x: 100,
       y: 100,
       width: 200,
       height: 200,
+      color: "#FFFACD",
       content: "New Note",
-      type: "text",
     };
-    socket.emit("addNote", newNote);
+    socket.emit("addObject", newObj);
   };
 
-  // 🎨 Add emoji
+
+  // Add emoji note
   const addEmoji = (emoji: any) => {
-    const newNote: Note = {
+    const newObj: WhiteboardObject = {
       id: Date.now().toString(),
+      type: "note",
       x: 150,
       y: 150,
       width: 100,
       height: 100,
+      color: "#FFFACD",
       content: emoji.emoji,
-      type: "emoji",
     };
-    socket.emit("addNote", newNote);
+    socket.emit("addObject", newObj);
     setShowEmojiPicker(false);
   };
 
-  // 🖼️ Add GIF (dummy for now)
-  const addGif = async () => {
-    const gifUrl = prompt("Enter GIF URL:");
-    if (!gifUrl) return;
 
-    const newNote: Note = {
+  // Add image
+  const addImage = async () => {
+    const imageUrl = prompt("Enter Image URL:");
+    if (!imageUrl) return;
+    const newObj: WhiteboardObject = {
       id: Date.now().toString(),
+      type: "image",
       x: 200,
       y: 200,
       width: 200,
       height: 200,
-      content: gifUrl,
-      type: "gif",
+      imageUrl,
     };
-    socket.emit("addNote", newNote);
+    socket.emit("addObject", newObj);
   };
 
-  // 📝 Update note position/size/content
-  const updateNote = useCallback((note: Note) => {
-    socket.emit("updateNote", note);
+
+  // Update object position/size/content
+  const updateObject = useCallback((object: WhiteboardObject) => {
+    socket.emit("updateObject", object);
   }, []);
 
-  // 🗑️ Delete note
-  const deleteNote = (id: string) => {
-    socket.emit("deleteNote", id);
+
+  // Delete object
+  const deleteObject = (id: string) => {
+    socket.emit("deleteObject", id);
   };
+
 
   return (
     <div className="relative w-full h-[calc(100vh-4rem)] bg-gray-100 overflow-hidden">
       {/* Toolbar */}
       <div className="absolute top-4 left-4 flex space-x-2 z-50">
-        <Button onClick={addNote}>
-          <Plus className="w-4 h-4 mr-2" /> Note
-        </Button>
-        <Button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-          <Smile className="w-4 h-4 mr-2" /> Emoji
-        </Button>
-        <Button onClick={addGif}>
-          <ImagePlus className="w-4 h-4 mr-2" /> GIF
-        </Button>
+        <Button onClick={() => setTool("note")}>Note</Button>
+        <Button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>Emoji</Button>
+        <Button onClick={() => setTool("image")}>Image</Button>
+        <Button onClick={() => setTool("drawing")}>Pencil</Button>
+        <Button onClick={() => setTool("shape")}>Shape</Button>
+        {tool === "note" && <Button onClick={addNote}>Add Note</Button>}
+        {tool === "image" && <Button onClick={addImage}>Add Image</Button>}
       </div>
 
       {/* Emoji Picker */}
@@ -138,55 +146,137 @@ const Whiteboard: React.FC = () => {
         </div>
       )}
 
-      {/* Render Notes */}
-      {notes.map((note) => (
-        <Rnd
-          key={note.id}
-          size={{ width: note.width, height: note.height }}
-          position={{ x: note.x, y: note.y }}
-          onDragStop={(e, d) => updateNote({ ...note, x: d.x, y: d.y })}
-          onResizeStop={(e, direction, ref, delta, position) => {
-            updateNote({
-              ...note,
-              width: parseInt(ref.style.width),
-              height: parseInt(ref.style.height),
-              ...position,
+      {/* Drawing Canvas */}
+      {tool === "drawing" && (
+        <canvas
+          className="absolute top-0 left-0 w-full h-full z-10"
+          style={{ pointerEvents: "auto" }}
+          width={window.innerWidth}
+          height={window.innerHeight}
+          onMouseDown={(e) => {
+            const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            setDrawing({
+              id: Date.now().toString(),
+              type: "drawing",
+              points: [{ x, y }],
             });
           }}
-          bounds="parent"
-          className="absolute"
-        >
-          <div className="w-full h-full bg-yellow-200 rounded-lg shadow-md p-2 relative">
-            <button
-              onClick={() => deleteNote(note.id)}
-              className="absolute top-1 right-1 text-red-500"
+          onMouseMove={(e) => {
+            if (!drawing) return;
+            const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            setDrawing({
+              ...drawing,
+              points: [...(drawing.points || []), { x, y }],
+            });
+          }}
+          onMouseUp={() => {
+            if (drawing) {
+              socket.emit("addObject", drawing);
+              setDrawing(null);
+            }
+          }}
+        />
+      )}
+
+      {/* Render Objects */}
+      {objects.map((obj) => {
+        if (obj.type === "note") {
+          return (
+            <Rnd
+              key={obj.id}
+              size={{ width: obj.width || 200, height: obj.height || 200 }}
+              position={{ x: obj.x, y: obj.y }}
+              onDragStop={(e, d) => updateObject({ ...obj, x: d.x, y: d.y })}
+              onResizeStop={(e, direction, ref, delta, position) => {
+                updateObject({
+                  ...obj,
+                  width: parseInt(ref.style.width),
+                  height: parseInt(ref.style.height),
+                  ...position,
+                });
+              }}
+              bounds="parent"
+              className="absolute"
             >
-              <Trash className="w-4 h-4" />
-            </button>
-            {note.type === "text" && (
-              <textarea
-                value={note.content}
-                onChange={(e) =>
-                  updateNote({ ...note, content: e.target.value })
-                }
-                className="w-full h-full bg-transparent resize-none outline-none"
-              />
-            )}
-            {note.type === "emoji" && (
-              <div className="flex justify-center items-center text-4xl h-full">
-                {note.content}
+              <div
+                className="w-full h-full rounded-lg shadow-md p-2 relative"
+                style={{ background: obj.color || "#FFFACD" }}
+              >
+                <button
+                  onClick={() => deleteObject(obj.id)}
+                  className="absolute top-1 right-1 text-red-500"
+                >
+                  <Trash className="w-4 h-4" />
+                </button>
+                <textarea
+                  value={obj.content}
+                  onChange={(e) =>
+                    updateObject({ ...obj, content: e.target.value })
+                  }
+                  className="w-full h-full bg-transparent resize-none outline-none"
+                />
               </div>
-            )}
-            {note.type === "gif" && (
-              <img
-                src={note.content}
-                alt="GIF"
-                className="w-full h-full object-cover rounded-lg"
+            </Rnd>
+          );
+        }
+        if (obj.type === "image" && obj.imageUrl) {
+          return (
+            <Rnd
+              key={obj.id}
+              size={{ width: obj.width || 200, height: obj.height || 200 }}
+              position={{ x: obj.x, y: obj.y }}
+              onDragStop={(e, d) => updateObject({ ...obj, x: d.x, y: d.y })}
+              onResizeStop={(e, direction, ref, delta, position) => {
+                updateObject({
+                  ...obj,
+                  width: parseInt(ref.style.width),
+                  height: parseInt(ref.style.height),
+                  ...position,
+                });
+              }}
+              bounds="parent"
+              className="absolute"
+            >
+              <div className="w-full h-full relative">
+                <button
+                  onClick={() => deleteObject(obj.id)}
+                  className="absolute top-1 right-1 text-red-500"
+                >
+                  <Trash className="w-4 h-4" />
+                </button>
+                <img
+                  src={obj.imageUrl}
+                  alt="Whiteboard Image"
+                  className="w-full h-full object-cover rounded-lg"
+                />
+              </div>
+            </Rnd>
+          );
+        }
+        if (obj.type === "drawing" && obj.points) {
+          return (
+            <svg
+              key={obj.id}
+              style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none" }}
+              width={window.innerWidth}
+              height={window.innerHeight}
+            >
+              <polyline
+                points={obj.points.map((p) => `${p.x},${p.y}`).join(" ")}
+                stroke="black"
+                strokeWidth={2}
+                fill="none"
               />
-            )}
-          </div>
-        </Rnd>
-      ))}
+            </svg>
+          );
+        }
+        // Add shape rendering here (rectangle, circle, etc.)
+        return null;
+      })}
     </div>
   );
 };

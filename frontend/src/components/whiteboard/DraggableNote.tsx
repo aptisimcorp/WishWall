@@ -1,6 +1,16 @@
-import React, { useState, ChangeEvent } from "react";
-import { SketchPicker, ColorResult } from "react-color";
-import { Note } from "./Whiteboard";
+import React, { useState } from "react";
+import { SketchPicker } from "react-color";
+import ColorResult from "react-color";
+
+// Define Note type locally to match usage in this component
+interface Note {
+  id: string;
+  text: string;
+  color?: string;
+  image?: string;
+  x: number;
+  y: number;
+}
 
 interface DraggableNoteProps {
   note: Note;
@@ -8,11 +18,11 @@ interface DraggableNoteProps {
   deleteNote: (id: string) => void;
 }
 
-const DraggableNote: React.FC<DraggableNoteProps> = ({
+const DraggableNote = ({
   note,
   updateNote,
   deleteNote,
-}) => {
+}: DraggableNoteProps) => {
   const [showColor, setShowColor] = useState(false);
 
   // Handle color change
@@ -21,7 +31,7 @@ const DraggableNote: React.FC<DraggableNoteProps> = ({
   };
 
   // Handle image upload
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
 

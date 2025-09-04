@@ -10,6 +10,8 @@ import { BlobServiceClient } from "@azure/storage-blob";
 import userRouter from "./routes/user.js";
 import profileRouter from "./routes/profile.js";
 import dashboardRouter from "./routes/dashboard.js";
+import whiteboardRouter from "./routes/whiteboard.js";
+
 
 dotenv.config();
 
@@ -115,8 +117,8 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// --- Socket.io Whiteboard Logic ---
-const getAllNotes = async () => {
+// --- Socket.io Whiteboard Logic (generic objects) ---
+const getAllObjects = async () => {
   if (!whiteboardContainer) {
     throw new Error("whiteboardContainer is not initialized");
   }
@@ -125,11 +127,11 @@ const getAllNotes = async () => {
   return resources;
 };
 
-const saveOrUpdateNote = async (note) => {
-  await whiteboardContainer.items.upsert(note);
+const saveOrUpdateObject = async (object) => {
+  await whiteboardContainer.items.upsert(object);
 };
 
-const deleteNote = async (id) => {
+const deleteObject = async (id) => {
   await whiteboardContainer.item(id, id).delete();
 };
 
@@ -137,26 +139,26 @@ io.on("connection", async (socket) => {
   console.log(`🔗 Client connected: ${socket.id}`);
 
   try {
-    const notes = await getAllNotes();
-    socket.emit("loadNotes", notes);
+    const objects = await getAllObjects();
+    socket.emit("loadObjects", objects);
   } catch (err) {
-    socket.emit("loadNotes", []);
-    console.error("Error loading notes:", err.message);
+    socket.emit("loadObjects", []);
+    console.error("Error loading objects:", err.message);
   }
 
-  socket.on("addNote", async (note) => {
-    await saveOrUpdateNote(note);
-    io.emit("noteAdded", note);
+  socket.on("addObject", async (object) => {
+    await saveOrUpdateObject(object);
+    io.emit("objectAdded", object);
   });
 
-  socket.on("updateNote", async (note) => {
-    await saveOrUpdateNote(note);
-    io.emit("noteUpdated", note);
+  socket.on("updateObject", async (object) => {
+    await saveOrUpdateObject(object);
+    io.emit("objectUpdated", object);
   });
 
-  socket.on("deleteNote", async (noteId) => {
-    await deleteNote(noteId);
-    io.emit("noteDeleted", noteId);
+  socket.on("deleteObject", async (objectId) => {
+    await deleteObject(objectId);
+    io.emit("objectDeleted", objectId);
   });
 
   socket.on("disconnect", () => {
@@ -164,7 +166,8 @@ io.on("connection", async (socket) => {
   });
 });
 
-// Existing APIs
+// Whiteboard REST API
+app.use("/api/whiteboard", whiteboardRouter);
 app.use("/api/users", userRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api", dashboardRouter);
