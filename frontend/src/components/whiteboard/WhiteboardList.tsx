@@ -13,7 +13,11 @@ export default function WhiteboardList() {
     fetch(`${API_URL}/whiteboard`)
       .then((res) => res.json())
       .then((data) => {
-        setWhiteboards(data);
+        // Only keep boards with a title
+        const boardsWithTitle = Array.isArray(data)
+          ? data.filter((b) => b.title && b.title.trim() !== "")
+          : [];
+        setWhiteboards(boardsWithTitle);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -36,8 +40,11 @@ export default function WhiteboardList() {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-          Recent Whiteboards
+        <h1
+          className="text-xl md:text-2xl font-bold text-gray-800"
+          style={{ color: "#07042aff", fontSize: "1.5rem", fontWeight: "500" }}
+        >
+          Recent Whiteboards ({whiteboards.length})
         </h1>
         <Link
           to="/whiteboard/new"
@@ -61,20 +68,34 @@ export default function WhiteboardList() {
               <Card
                 style={{
                   padding: "10px",
-                  background: "whitesmoke",
+                  background:
+                    "linear-gradient(to right, rgb(153 34 118), rgb(242 112 190)) rgb(168 92 138)",
+                  color: "#fff",
                   boxShadow: "2px 3px 6px #9b7acd",
+                  transition: "background 0.3s, color 0.3s, transform 0.3s",
                 }}
                 key={boardId}
-                className="bg-gradient-to-r from-purple-50 to-fuchsia-50 border border-purple-100 hover:shadow-2xl hover:scale-[1.02] transition-transform duration-300 rounded-2xl"
+                className="border border-purple-100 rounded-2xl"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "linear-gradient(to right, #24243e, #302b63, #0f0c29)";
+                  e.currentTarget.style.color = "#fff";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "linear-gradient(to right, rgb(153 34 118), rgb(242 112 190)) rgb(168 92 138)";
+                  e.currentTarget.style.color = "#fff";
+                }}
               >
                 <CardContent className="p-5 flex flex-col gap-3">
                   <Link
                     to={`/whiteboard/${boardId}`}
-                    className="text-lg font-semibold text-purple-700 hover:underline"
+                    className="text-lg font-semibold hover:underline"
+                    style={{ color: "#fff" }}
                   >
                     {board.title}
                   </Link>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm" style={{ color: "#fff" }}>
                     Last updated: {new Date(board.updatedAt).toLocaleString()}
                   </div>
                 </CardContent>

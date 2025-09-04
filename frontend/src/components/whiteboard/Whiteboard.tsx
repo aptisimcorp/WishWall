@@ -25,6 +25,7 @@ import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
+import socket from "../../socket";
 
 // Fix: Add ImportMetaEnv type declaration for Vite
 // Add this to the top of the file (or in env.d.ts if preferred)
@@ -75,6 +76,10 @@ const Whiteboard = () => {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaUrl, setMediaUrl] = useState("");
 
+  // Online users state
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [cursors, setCursors] = useState({}); // { userId: { x, y, name } }
+
   // Preset options
   const colors = ["#8B5CF6", "#F59E0B", "#10B981", "#EF4444", "#3B82F6"];
   const presetGifs = [
@@ -110,38 +115,102 @@ const Whiteboard = () => {
     }
   }, [eventId]);
 
+  // Socket.io real-time sync
+  useEffect(() => {
+    // Socket.io real-time sync
+    if (!eventId || eventId === "new") return;
+    socket.emit("joinBoard", eventId);
+    socket.emit("userOnline", { eventId, user });
+
+    const handleLoadNotes = (notes) => {
+      setElements(notes);
+    };
+    const handleNoteAdded = (note) => {
+      setElements((prev) => [...prev, note]);
+    };
+    const handleNoteUpdated = (note) => {
+      setElements((prev) => prev.map((el) => (el.id === note.id ? note : el)));
+    };
+    const handleNoteDeleted = (noteId) => {
+      setElements((prev) => prev.filter((el) => el.id !== noteId));
+    };
+    const handleOnlineUsers = (users) => {
+      setOnlineUsers(users);
+    };
+    const handleCursorUpdate = ({ userId, x, y, name }) => {
+      setCursors((prev) => ({ ...prev, [userId]: { x, y, name } }));
+    };
+    const handleUserOffline = (userId) => {
+      setCursors((prev) => {
+        const copy = { ...prev };
+        delete copy[userId];
+        return copy;
+      });
+      setOnlineUsers((prev) => prev.filter((u) => u.id !== userId));
+    };
+
+    socket.on("loadNotes", handleLoadNotes);
+    socket.on("noteAdded", handleNoteAdded);
+    socket.on("noteUpdated", handleNoteUpdated);
+    socket.on("noteDeleted", handleNoteDeleted);
+    socket.on("onlineUsers", handleOnlineUsers);
+    socket.on("cursorUpdate", handleCursorUpdate);
+    socket.on("userOffline", handleUserOffline);
+
+    return () => {
+      socket.emit("userOffline", { eventId, userId: user?.id });
+      socket.off("loadNotes", handleLoadNotes);
+      socket.off("noteAdded", handleNoteAdded);
+      socket.off("noteUpdated", handleNoteUpdated);
+      socket.off("noteDeleted", handleNoteDeleted);
+      socket.off("onlineUsers", handleOnlineUsers);
+      socket.off("cursorUpdate", handleCursorUpdate);
+      socket.off("userOffline", handleUserOffline);
+    };
+  }, [eventId, user]);
+
   // Save whiteboard helper for API calls after note changes
   const saveWhiteboard = (updatedElements) => {
-    const API_URL = import.meta.env.VITE_API_URL || "";
-    const isNew = eventId === "new";
-    const url = isNew
-      ? `${API_URL}/whiteboard`
-      : `${API_URL}/whiteboard/${eventId}`;
-    const method = isNew ? "POST" : "PUT";
-    fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        elements: updatedElements,
-      }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to save");
-        return res.json();
+    if (!eventId || eventId === "new") {
+      // fallback to API for new boards
+      const API_URL = import.meta.env.VITE_API_URL || "";
+      const isNew = eventId === "new";
+      const url = isNew
+        ? `${API_URL}/whiteboard`
+        : `${API_URL}/whiteboard/${eventId}`;
+      const method = isNew ? "POST" : "PUT";
+      fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title,
+          elements: updatedElements,
+        }),
       })
-      .then((data) => {
-        showSuccess("Whiteboard saved!");
-        // If new, redirect to the new board
-        if (isNew && data.id) {
-          window.location.replace(`/whiteboard/${data.id}`);
-        }
-      })
-      .catch(() => {
-        showInfo("Error saving whiteboard");
-      });
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to save");
+          return res.json();
+        })
+        .then((data) => {
+          showSuccess("Whiteboard saved!");
+          // If new, redirect to the new board
+          if (isNew && data.id) {
+            window.location.replace(`/whiteboard/${data.id}`);
+          }
+        })
+        .catch(() => {
+          showInfo("Error saving whiteboard");
+        });
+      return;
+    }
+    // For existing boards, emit socket events for add/update/delete
+    // Detect changes: add, update, delete
+    // For simplicity, emit updateNote for all notes
+    updatedElements.forEach((note) => {
+      socket.emit("updateNote", note);
+    });
   };
 
   // -----------------------------
@@ -287,6 +356,9 @@ const Whiteboard = () => {
       author: user,
       media: mediaUrl,
     };
+    if (eventId && eventId !== "new") {
+      socket.emit("addNote", newNote);
+    }
     const updatedElements = [...elements, newNote];
     setElements(updatedElements);
     setNewStickyNote("");
@@ -295,11 +367,43 @@ const Whiteboard = () => {
     setShowStickyNoteDialog(false);
     saveWhiteboard(updatedElements);
   };
-  const handleDeleteElement = (id: string) =>
+  const handleDeleteElement = (id: string) => {
+    if (eventId && eventId !== "new") {
+      socket.emit("deleteNote", id);
+    }
     setElements((prev) => prev.filter((el) => el.id !== id));
+  };
 
   // File input ref for media uploads
   const mediaInputRef = useRef(null);
+
+  // Mouse move handler for cursor sharing
+  const handleMouseMove = (e) => {
+    if (!user?.id || !eventId || eventId === "new") return;
+    const boardRect = document
+      .getElementById("whiteboard-canvas")
+      ?.getBoundingClientRect();
+    if (!boardRect) return;
+    const x = e.clientX - boardRect.left;
+    const y = e.clientY - boardRect.top;
+    socket.emit("cursorUpdate", {
+      eventId,
+      userId: user.id,
+      x,
+      y,
+      name: user.name,
+    });
+  };
+
+  // Attach mousemove listener
+  useEffect(() => {
+    const board = document.getElementById("whiteboard-canvas");
+    if (!board) return;
+    board.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      board.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [user, eventId]);
 
   // -----------------------------
   // Render
@@ -346,7 +450,7 @@ const Whiteboard = () => {
             <div className="flex items-center space-x-2">
               <Users className="w-4 h-4 text-gray-500" />
               <div className="flex -space-x-2">
-                {activeUsers.map((activeUser) => (
+                {onlineUsers.map((activeUser) => (
                   <Avatar
                     key={activeUser.id}
                     className="h-8 w-8 border-2 border-white"
@@ -354,22 +458,15 @@ const Whiteboard = () => {
                     <AvatarImage src={activeUser.profilePhoto} />
                     <AvatarFallback className="text-xs">
                       {activeUser.name
-                        .split(" ")
+                        ?.split(" ")
                         .map((n: string) => n[0])
                         .join("")}
                     </AvatarFallback>
                   </Avatar>
                 ))}
-                <Avatar className="h-8 w-8 border-2 border-white">
-                  <AvatarImage src={user?.profilePhoto} />
-                  <AvatarFallback className="bg-purple-500 text-white text-xs">
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
               </div>
               <span className="text-sm text-gray-500">
-                {activeUsers.length + 1} online
+                {onlineUsers.length} online
               </span>
             </div>
 
@@ -412,7 +509,10 @@ const Whiteboard = () => {
         {/* ...toolbar code from your version here (kept same)... */}
 
         {/* Canvas + Elements */}
-        <div className="relative flex-1 bg-white whiteboard-export-area">
+        <div
+          className="relative flex-1 bg-white whiteboard-export-area"
+          id="whiteboard-canvas"
+        >
           {elements
             .filter((el) => el.type === "sticky_note")
             .map((note, idx) => (
@@ -528,6 +628,37 @@ const Whiteboard = () => {
                 </div>
               </motion.div>
             ))}
+
+          {/* Render other users' cursors */}
+          {Object.entries(cursors).map(([userId, cursor]) => {
+            if (userId === user?.id) return null;
+            const c = cursor as { x: number; y: number; name: string };
+            return (
+              <div
+                key={userId}
+                style={{
+                  position: "absolute",
+                  left: c.x,
+                  top: c.y,
+                  pointerEvents: "none",
+                  zIndex: 9999,
+                  background: "rgba(255,255,255,0.8)",
+                  border: "1px solid #ccc",
+                  borderRadius: 6,
+                  padding: "2px 8px",
+                  fontSize: 13,
+                  color: "#333",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                  transform: "translate(-50%, -50%)",
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>{c.name}</span>
+                <span style={{ marginLeft: 4, fontSize: 10, color: "#888" }}>
+                  🖱️
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
