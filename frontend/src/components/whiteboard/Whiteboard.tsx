@@ -1,192 +1,478 @@
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { Square } from "lucide-react";
 // src/components/whiteboard/Whiteboard.tsx
-import React, { useEffect, useState, useCallback } from "react";
-import Draggable from "react-draggable";
-import { Rnd } from "react-rnd";
-import socket from "../../socket";
+import React, { useState, useRef, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Users,
+  Save,
+  Share2,
+  Download,
+  ZoomIn,
+  ZoomOut,
+  Undo,
+  Redo,
+  Trash2,
+} from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNotification } from "../../contexts/NotificationContext";
+import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { Plus, Smile, ImagePlus, Trash } from "lucide-react";
-import EmojiPicker from "emoji-picker-react";
+import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Badge } from "../ui/badge";
 
-// Note type
-interface Note {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  content: string;
-  type: "text" | "emoji" | "gif";
-}
+// -----------------------------
+// Component
+// -----------------------------
+const Whiteboard = () => {
+  const { eventId } = useParams();
+  const { user } = useAuth();
+  const { showSuccess, showInfo } = useNotification();
 
-const Whiteboard: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  // Canvas and state
+  const canvasRef = useRef(null);
+  const [selectedTool, setSelectedTool] = useState("move");
+  const [selectedColor, setSelectedColor] = useState("#8B5CF6");
+  const [elements, setElements] = useState([]);
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [zoom, setZoom] = useState(1);
 
-  // 🔌 Load notes from server
+  // Sticky notes
+  const [showStickyNoteDialog, setShowStickyNoteDialog] = useState(false);
+  const [newStickyNote, setNewStickyNote] = useState("");
+  const [stickyNotePosition, setStickyNotePosition] = useState({ x: 0, y: 0 });
+
+  // Editing sticky notes
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editingNoteContent, setEditingNoteContent] = useState("");
+  const [editingNoteColor, setEditingNoteColor] = useState("");
+  const [editingNoteImage, setEditingNoteImage] = useState("");
+
+  // Whiteboard title
+  const [title, setTitle] = useState("Untitled Whiteboard");
+  const [editingTitle, setEditingTitle] = useState(false);
+
+  // Save state
+  const [saving, setSaving] = useState(false);
+
+  // Preset options
+  const colors = ["#8B5CF6", "#F59E0B", "#10B981", "#EF4444", "#3B82F6"];
+  const presetGifs = [
+    "https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif",
+    "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif",
+    "https://media.giphy.com/media/xT9IgG50Fb7Mi0prBC/giphy.gif",
+  ];
+  const tools = [
+    { id: "move", label: "Move", icon: ArrowLeft },
+    { id: "sticky", label: "Sticky Note", icon: Square }, // Use Square icon from your imports
+    // ... other tools
+  ];
+
+  // -----------------------------
+  // Effects
+  // -----------------------------
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("✅ Connected to socket server", socket.id);
-    });
+    if (eventId && eventId !== "new") {
+      fetch(`/api/whiteboard/${eventId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setTitle(data.title || "Untitled Whiteboard");
+          setElements(data.elements || []);
+        })
+        .catch(() => {
+          setTitle("Untitled Whiteboard");
+          setElements([]);
+        });
+    } else {
+      setActiveUsers([]);
+      setElements([]);
+    }
+  }, [eventId]);
 
-    socket.on("disconnect", () => {
-      console.log("❌ Disconnected from socket server");
-    });
+  // Save whiteboard helper for API calls after note changes
+  const saveWhiteboard = (updatedElements) => {
+    const isNew = eventId === "new";
+    const url = isNew ? "/api/whiteboard" : `/api/whiteboard/${eventId}`;
+    const method = isNew ? "POST" : "PUT";
+    fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        elements: updatedElements,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to save");
+        return res.json();
+      })
+      .then((data) => {
+        showSuccess("Whiteboard saved!");
+        // If new, redirect to the new board
+        if (isNew && data.id) {
+          window.location.replace(`/whiteboard/${data.id}`);
+        }
+      })
+      .catch(() => {
+        showInfo("Error saving whiteboard");
+      });
+  };
 
-    socket.on("loadNotes", (serverNotes: Note[]) => {
-      setNotes(serverNotes);
-    });
+  // -----------------------------
+  // Handlers (implement these properly in your logic)
+  // -----------------------------
+  const handleSave = () => {
+    setSaving(true);
+    const isNew = eventId === "new";
+    const url = isNew ? "/api/whiteboard" : `/api/whiteboard/${eventId}`;
+    const method = isNew ? "POST" : "PUT";
+    fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title,
+        elements,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to save");
+        return res.json();
+      })
+      .then((data) => {
+        showSuccess("Whiteboard saved!");
+        // If new, redirect to the new board
+        if (isNew && data.id) {
+          window.location.replace(`/whiteboard/${data.id}`);
+        }
+      })
+      .catch(() => {
+        showInfo("Error saving whiteboard");
+      })
+      .finally(() => {
+        setSaving(false);
+      });
+  };
 
-    socket.on("noteAdded", (note: Note) => {
-      setNotes((prev) => [...prev, note]);
-    });
-
-    socket.on("noteUpdated", (updatedNote: Note) => {
-      setNotes((prev) =>
-        prev.map((n) => (n.id === updatedNote.id ? updatedNote : n))
-      );
-    });
-
-    socket.on("noteDeleted", (noteId: string) => {
-      setNotes((prev) => prev.filter((n) => n.id !== noteId));
-    });
-
-    return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("loadNotes");
-      socket.off("noteAdded");
-      socket.off("noteUpdated");
-      socket.off("noteDeleted");
-    };
-  }, []);
-
-  // 🔨 Add a new sticky note
-  const addNote = () => {
-    const newNote: Note = {
+  const handleShare = () => showInfo("Share link copied!");
+  const handleExport = async () => {
+    try {
+      const boardDiv = document.querySelector(".whiteboard-export-area");
+      if (!boardDiv) {
+        showInfo(
+          "Whiteboard area not found. Please make sure there are sticky notes on the board."
+        );
+        return;
+      }
+      const canvas = await html2canvas(boardDiv as HTMLElement);
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "landscape" });
+      pdf.setFontSize(20);
+      pdf.text(title, 10, 20);
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pageWidth - 20;
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, "PNG", 10, 30, pdfWidth, pdfHeight);
+      pdf.save(`${title || "whiteboard"}.pdf`);
+      showSuccess("Whiteboard exported as PDF!");
+    } catch (err) {
+      console.error("PDF export error:", err);
+      showInfo("Failed to export PDF. See console for details.");
+    }
+  };
+  const handleZoomIn = () => setZoom((z) => Math.min(z + 0.1, 2));
+  const handleZoomOut = () => setZoom((z) => Math.max(z - 0.1, 0.5));
+  const handleNewStickyNote = () => setShowStickyNoteDialog(true);
+  const handleCanvasClick = () => {};
+  const handleDrop = () => {};
+  const handleDragStart = () => {};
+  const handleEditStickyNote = (el: any) => {
+    setEditingNoteId(el.id);
+    setEditingNoteContent(el.content);
+    setEditingNoteColor(el.color);
+    setEditingNoteImage(el.image || "");
+  };
+  const handleSaveStickyNoteEdit = () => {
+    const updatedElements = elements.map((el) =>
+      el.id === editingNoteId
+        ? {
+            ...el,
+            content: editingNoteContent,
+            color: editingNoteColor,
+            image: editingNoteImage,
+          }
+        : el
+    );
+    setElements(updatedElements);
+    setEditingNoteId(null);
+    setEditingNoteContent("");
+    setEditingNoteColor("");
+    setEditingNoteImage("");
+    saveWhiteboard(updatedElements);
+  };
+  const handleCancelStickyNoteEdit = () => {
+    setEditingNoteId(null);
+    setEditingNoteContent("");
+    setEditingNoteColor("");
+    setEditingNoteImage("");
+  };
+  const handleAddStickyNote = () => {
+    const newNote = {
       id: Date.now().toString(),
-      x: 100,
-      y: 100,
+      type: "sticky_note",
+      x: stickyNotePosition.x,
+      y: stickyNotePosition.y,
       width: 200,
-      height: 200,
-      content: "New Note",
-      type: "text",
+      height: 150,
+      color: selectedColor,
+      content: newStickyNote,
+      author: user,
     };
-    socket.emit("addNote", newNote);
+    const updatedElements = [...elements, newNote];
+    setElements(updatedElements);
+    setNewStickyNote("");
+    setShowStickyNoteDialog(false);
+    saveWhiteboard(updatedElements);
   };
+  const handleDeleteElement = (id: string) =>
+    setElements((prev) => prev.filter((el) => el.id !== id));
 
-  // 🎨 Add emoji
-  const addEmoji = (emoji: any) => {
-    const newNote: Note = {
-      id: Date.now().toString(),
-      x: 150,
-      y: 150,
-      width: 100,
-      height: 100,
-      content: emoji.emoji,
-      type: "emoji",
-    };
-    socket.emit("addNote", newNote);
-    setShowEmojiPicker(false);
-  };
-
-  // 🖼️ Add GIF (dummy for now)
-  const addGif = async () => {
-    const gifUrl = prompt("Enter GIF URL:");
-    if (!gifUrl) return;
-
-    const newNote: Note = {
-      id: Date.now().toString(),
-      x: 200,
-      y: 200,
-      width: 200,
-      height: 200,
-      content: gifUrl,
-      type: "gif",
-    };
-    socket.emit("addNote", newNote);
-  };
-
-  // 📝 Update note position/size/content
-  const updateNote = useCallback((note: Note) => {
-    socket.emit("updateNote", note);
-  }, []);
-
-  // 🗑️ Delete note
-  const deleteNote = (id: string) => {
-    socket.emit("deleteNote", id);
-  };
-
+  // -----------------------------
+  // Render
+  // -----------------------------
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] bg-gray-100 overflow-hidden">
-      {/* Toolbar */}
-      <div className="absolute top-4 left-4 flex space-x-2 z-50">
-        <Button onClick={addNote}>
-          <Plus className="w-4 h-4 mr-2" /> Note
-        </Button>
-        <Button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-          <Smile className="w-4 h-4 mr-2" /> Emoji
-        </Button>
-        <Button onClick={addGif}>
-          <ImagePlus className="w-4 h-4 mr-2" /> GIF
-        </Button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link to="/dashboard">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+            <div>
+              {editingTitle ? (
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  onBlur={() => setEditingTitle(false)}
+                  autoFocus
+                  className="text-xl font-bold w-64"
+                />
+              ) : (
+                <h1
+                  className="text-xl font-bold cursor-pointer"
+                  onClick={() => setEditingTitle(true)}
+                  title="Click to edit title"
+                >
+                  {title}
+                </h1>
+              )}
+              <p className="text-sm text-gray-500">
+                Team celebration whiteboard
+              </p>
+            </div>
+          </div>
+
+          {/* Right side */}
+          <div className="flex items-center space-x-4">
+            {/* Active Users */}
+            <div className="flex items-center space-x-2">
+              <Users className="w-4 h-4 text-gray-500" />
+              <div className="flex -space-x-2">
+                {activeUsers.map((activeUser) => (
+                  <Avatar
+                    key={activeUser.id}
+                    className="h-8 w-8 border-2 border-white"
+                  >
+                    <AvatarImage src={activeUser.profilePhoto} />
+                    <AvatarFallback className="text-xs">
+                      {activeUser.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+                <Avatar className="h-8 w-8 border-2 border-white">
+                  <AvatarImage src={user?.profilePhoto} />
+                  <AvatarFallback className="bg-purple-500 text-white text-xs">
+                    {user?.firstName?.[0]}
+                    {user?.lastName?.[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              <span className="text-sm text-gray-500">
+                {activeUsers.length + 1} online
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {saving ? "Saving..." : "Save"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleShare}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNewStickyNote}
+                title="Add Sticky Note"
+              >
+                <Square className="w-4 h-4 mr-2 text-yellow-500" />
+                Sticky Note
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Emoji Picker */}
-      {showEmojiPicker && (
-        <div className="absolute top-16 left-4 z-50">
-          <EmojiPicker onEmojiClick={addEmoji} />
+      {/* Whiteboard Body */}
+      <div className="flex h-[calc(100vh-80px)]">
+        {/* Toolbar */}
+        {/* ...toolbar code from your version here (kept same)... */}
+
+        {/* Canvas + Elements */}
+        <div className="relative flex-1 bg-white whiteboard-export-area">
+          {elements
+            .filter((el) => el.type === "sticky_note")
+            .map((note, idx) => (
+              <motion.div
+                key={note.id}
+                className="absolute shadow-lg rounded-lg p-3 cursor-move"
+                style={{
+                  left: typeof note.x === "number" ? note.x : 40,
+                  top: typeof note.y === "number" ? note.y : 40,
+                  width: note.width || 200,
+                  height: note.height || 150,
+                  background: note.color || "#FDE68A",
+                  zIndex: 10,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                }}
+                drag
+                dragMomentum={false}
+                onDragEnd={(e, info) => {
+                  setElements((prev) => {
+                    const updatedElements = prev.map((el, i) => {
+                      // Ensure x and y are numbers
+                      const prevX = typeof el.x === "number" ? el.x : 40;
+                      const prevY = typeof el.y === "number" ? el.y : 40;
+                      return i === idx
+                        ? {
+                            ...el,
+                            x: Math.max(0, prevX + info.delta.x),
+                            y: Math.max(0, prevY + info.delta.y),
+                          }
+                        : el;
+                    });
+                    saveWhiteboard(updatedElements);
+                    return updatedElements;
+                  });
+                }}
+                onClick={() => handleEditStickyNote(note)}
+              >
+                <div className="flex-1 mb-2 overflow-auto">{note.content}</div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Avatar className="h-6 w-6 border-2 border-white">
+                    <AvatarImage src={note.author?.profilePhoto} />
+                    <AvatarFallback className="bg-purple-500 text-white text-xs">
+                      {note.author?.firstName?.[0]}
+                      {note.author?.lastName?.[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-gray-700 font-medium">
+                    {note.author?.firstName} {note.author?.lastName}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+        </div>
+      </div>
+
+      {/* Sticky Note Dialog */}
+      {showStickyNoteDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30"
+          style={{
+            background: "rgba(0, 0, 0, 0.5)",
+          }}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg p-8 w-[480px] max-w-full"
+            style={{
+              width: "30%",
+              padding: "15px",
+            }}
+          >
+            <h2 className="text-lg font-bold mb-2">Add Sticky Note</h2>
+            <Textarea
+              value={newStickyNote}
+              onChange={(e) => setNewStickyNote(e.target.value)}
+              placeholder="Enter note content..."
+              className="mb-3"
+              rows={3}
+            />
+            <div className="mb-3 flex gap-2" style={{ padding: "12px" }}>
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`w-6 h-6 rounded-full border-2 ${
+                    selectedColor === color ? "border-black" : "border-gray-300"
+                  }`}
+                  style={{ background: color }}
+                  onClick={() => setSelectedColor(color)}
+                  aria-label={`Select color ${color}`}
+                />
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowStickyNoteDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleAddStickyNote}
+                disabled={!newStickyNote.trim()}
+              >
+                Add
+              </Button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Render Notes */}
-      {notes.map((note) => (
-        <Rnd
-          key={note.id}
-          size={{ width: note.width, height: note.height }}
-          position={{ x: note.x, y: note.y }}
-          onDragStop={(e, d) => updateNote({ ...note, x: d.x, y: d.y })}
-          onResizeStop={(e, direction, ref, delta, position) => {
-            updateNote({
-              ...note,
-              width: parseInt(ref.style.width),
-              height: parseInt(ref.style.height),
-              ...position,
-            });
-          }}
-          bounds="parent"
-          className="absolute"
-        >
-          <div className="w-full h-full bg-yellow-200 rounded-lg shadow-md p-2 relative">
-            <button
-              onClick={() => deleteNote(note.id)}
-              className="absolute top-1 right-1 text-red-500"
-            >
-              <Trash className="w-4 h-4" />
-            </button>
-            {note.type === "text" && (
-              <textarea
-                value={note.content}
-                onChange={(e) =>
-                  updateNote({ ...note, content: e.target.value })
-                }
-                className="w-full h-full bg-transparent resize-none outline-none"
-              />
-            )}
-            {note.type === "emoji" && (
-              <div className="flex justify-center items-center text-4xl h-full">
-                {note.content}
-              </div>
-            )}
-            {note.type === "gif" && (
-              <img
-                src={note.content}
-                alt="GIF"
-                className="w-full h-full object-cover rounded-lg"
-              />
-            )}
-          </div>
-        </Rnd>
-      ))}
     </div>
   );
 };

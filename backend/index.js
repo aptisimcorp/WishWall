@@ -10,6 +10,7 @@ import { BlobServiceClient } from "@azure/storage-blob";
 import userRouter from "./routes/user.js";
 import profileRouter from "./routes/profile.js";
 import dashboardRouter from "./routes/dashboard.js";
+import whiteboardRouter from "./routes/whiteboard.js";
 
 dotenv.config();
 
@@ -53,6 +54,9 @@ async function initCosmos() {
     });
     console.log(`✅ Cosmos Container: ${container.id}`);
     whiteboardContainer = container;
+
+    // Make whiteboardContainer available to all routes
+    app.set("whiteboardContainer", whiteboardContainer);
 
     // Create social feed container if not exists
     const { container: socialContainer } =
@@ -168,6 +172,7 @@ io.on("connection", async (socket) => {
 app.use("/api/users", userRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api", dashboardRouter);
+app.use("/api/whiteboard", whiteboardRouter);
 
 // Server start is now delayed until Cosmos DB is initialized
 

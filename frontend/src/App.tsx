@@ -11,6 +11,7 @@ import { Login } from "./components/auth/Login";
 import { Signup } from "./components/auth/Signup";
 import { Dashboard } from "./components/dashboard/Dashboard";
 import Whiteboard from "./components/whiteboard/Whiteboard";
+import WhiteboardList from "./components/whiteboard/WhiteboardList";
 import { SocialFeed } from "./components/social/SocialFeed";
 import { Navbar } from "./components/layout/Navbar";
 import { LoadingSpinner } from "./components/ui/LoadingSpinner";
@@ -38,6 +39,7 @@ function AppContent() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/feed" element={<SocialFeed />} />
               <Route path="/whiteboard/:eventId" element={<Whiteboard />} />
+              <Route path="/whiteboards" element={<WhiteboardList />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </main>

@@ -24,3 +24,5 @@ export function authenticateJWT(req, res, next) {
     res.status(401).json({ error: "Unauthorized" });
   }
 }
+
+export const requireAuth = authenticateJWT;

@@ -296,7 +296,10 @@ export function Dashboard() {
                           {milestone.daysUntil} days
                         </p>
                         <p className="text-xs text-gray-500">
-                          {milestone.date}
+                          {new Date(milestone.date).toLocaleString("en-US", {
+                            day: "numeric",
+                            month: "short",
+                          })}
                         </p>
                       </div>
                     </motion.div>
