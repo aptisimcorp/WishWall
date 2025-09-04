@@ -48,17 +48,13 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center space-x-2">
-            <motion.div
-              whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
-              className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center"
-            >
-              <Sparkles className="w-5 h-5 text-white" />
-            </motion.div>
-            <span className="text-xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              WishBoard
-            </span>
+          <Link to="/dashboard" className="flex items-center space-x-2 wish-board-logo">
+            <img
+              src="/public/img/wishboardlogo.png"
+              alt="WishBoard Logo"
+              className="w-20 h-10 object-contain"
+              style={{ display: 'block' }}
+            />
           </Link>
 
           {/* Desktop Navigation */}
