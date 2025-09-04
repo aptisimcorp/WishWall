@@ -1,52 +1,66 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
-import { useAuth, SignupData } from '../../contexts/AuthContext';
-import { useNotification } from '../../contexts/NotificationContext';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Calendar, Upload, User, Mail, Lock, Briefcase, Users } from 'lucide-react';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import React, { useState } from "react";
+import { motion } from "motion/react";
+import { Link } from "react-router-dom";
+import { useAuth, SignupData } from "../../contexts/AuthContext";
+import { useNotification } from "../../contexts/NotificationContext";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import {
+  Calendar,
+  Upload,
+  User,
+  Mail,
+  Lock,
+  Briefcase,
+  Users,
+} from "lucide-react";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
 
 export function Signup() {
   const { signup, loading } = useAuth();
   const { showError, showSuccess } = useNotification();
   const [formData, setFormData] = useState<SignupData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    birthday: '',
-    personalAnniversary: '',
-    workAnniversary: '',
-    department: '',
-    team: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    birthday: "",
+    personalAnniversary: "",
+    workAnniversary: "",
+    department: "",
+    team: "",
   });
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [photoPreview, setPhotoPreview] = useState<string>("");
   const [errors, setErrors] = useState<Partial<SignupData>>({});
 
   const validateForm = (): boolean => {
     const newErrors: Partial<SignupData> = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
+    if (!formData.firstName.trim())
+      newErrors.firstName = "First name is required";
+    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Invalid email format';
+      newErrors.email = "Invalid email format";
     }
     if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain uppercase, lowercase, and number';
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 4) {
+      newErrors.password = "Password must be at least 4 characters";
     }
-    if (!formData.birthday) newErrors.birthday = 'Birthday is required';
-    if (!formData.workAnniversary) newErrors.workAnniversary = 'Work anniversary is required';
+    if (!formData.birthday) newErrors.birthday = "Birthday is required";
+    if (!formData.workAnniversary)
+      newErrors.workAnniversary = "Work anniversary is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -54,37 +68,36 @@ export function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
-      showError('Please fix the errors in the form');
+      showError("Please fix the errors in the form");
       return;
     }
 
     try {
       await signup({
         ...formData,
-        profilePhoto: profilePhoto || undefined
+        profilePhoto: profilePhoto || undefined,
       });
-      showSuccess('Account created successfully! Welcome to WishBoard! 🎉');
+      showSuccess("Account created successfully! Welcome to WishBoard! 🎉");
     } catch (error) {
-      showError('Failed to create account. Please try again.');
+      showError("Failed to create account. Please try again.");
     }
   };
 
-  const handleInputChange = (field: keyof SignupData) => (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-    if (errors[field]) {
-      setErrors(prev => ({
+  const handleInputChange =
+    (field: keyof SignupData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
         ...prev,
-        [field]: undefined
+        [field]: e.target.value,
       }));
-    }
-  };
+      if (errors[field]) {
+        setErrors((prev) => ({
+          ...prev,
+          [field]: undefined,
+        }));
+      }
+    };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,13 +189,18 @@ export function Signup() {
                     className="hidden"
                   />
                 </div>
-                <Label className="text-sm text-gray-600">Upload your profile picture</Label>
+                <Label className="text-sm text-gray-600">
+                  Upload your profile picture
+                </Label>
               </div>
 
               {/* Name Fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="firstName"
+                    className="flex items-center gap-2"
+                  >
                     <User className="w-4 h-4" />
                     First Name *
                   </Label>
@@ -191,8 +209,8 @@ export function Signup() {
                     type="text"
                     placeholder="John"
                     value={formData.firstName}
-                    onChange={handleInputChange('firstName')}
-                    className={errors.firstName ? 'border-red-500' : ''}
+                    onChange={handleInputChange("firstName")}
+                    className={errors.firstName ? "border-red-500" : ""}
                   />
                   {errors.firstName && (
                     <p className="text-sm text-red-500">{errors.firstName}</p>
@@ -206,8 +224,8 @@ export function Signup() {
                     type="text"
                     placeholder="Doe"
                     value={formData.lastName}
-                    onChange={handleInputChange('lastName')}
-                    className={errors.lastName ? 'border-red-500' : ''}
+                    onChange={handleInputChange("lastName")}
+                    className={errors.lastName ? "border-red-500" : ""}
                   />
                   {errors.lastName && (
                     <p className="text-sm text-red-500">{errors.lastName}</p>
@@ -226,8 +244,8 @@ export function Signup() {
                   type="email"
                   placeholder="john.doe@company.com"
                   value={formData.email}
-                  onChange={handleInputChange('email')}
-                  className={errors.email ? 'border-red-500' : ''}
+                  onChange={handleInputChange("email")}
+                  className={errors.email ? "border-red-500" : ""}
                 />
                 {errors.email && (
                   <p className="text-sm text-red-500">{errors.email}</p>
@@ -245,14 +263,14 @@ export function Signup() {
                   type="password"
                   placeholder="••••••••"
                   value={formData.password}
-                  onChange={handleInputChange('password')}
-                  className={errors.password ? 'border-red-500' : ''}
+                  onChange={handleInputChange("password")}
+                  className={errors.password ? "border-red-500" : ""}
                 />
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password}</p>
                 )}
                 <p className="text-xs text-gray-500">
-                  Must be 8+ characters with uppercase, lowercase, and number
+                  Must be at least 4 characters long
                 </p>
               </div>
 
@@ -267,8 +285,8 @@ export function Signup() {
                     id="birthday"
                     type="date"
                     value={formData.birthday}
-                    onChange={handleInputChange('birthday')}
-                    className={errors.birthday ? 'border-red-500' : ''}
+                    onChange={handleInputChange("birthday")}
+                    className={errors.birthday ? "border-red-500" : ""}
                   />
                   {errors.birthday && (
                     <p className="text-sm text-red-500">{errors.birthday}</p>
@@ -281,31 +299,40 @@ export function Signup() {
                     id="workAnniversary"
                     type="date"
                     value={formData.workAnniversary}
-                    onChange={handleInputChange('workAnniversary')}
-                    className={errors.workAnniversary ? 'border-red-500' : ''}
+                    onChange={handleInputChange("workAnniversary")}
+                    className={errors.workAnniversary ? "border-red-500" : ""}
                   />
                   {errors.workAnniversary && (
-                    <p className="text-sm text-red-500">{errors.workAnniversary}</p>
+                    <p className="text-sm text-red-500">
+                      {errors.workAnniversary}
+                    </p>
                   )}
                 </div>
               </div>
 
               {/* Personal Anniversary */}
               <div className="space-y-2">
-                <Label htmlFor="personalAnniversary">Personal Anniversary (Optional)</Label>
+                <Label htmlFor="personalAnniversary">
+                  Personal Anniversary (Optional)
+                </Label>
                 <Input
                   id="personalAnniversary"
                   type="date"
                   value={formData.personalAnniversary}
-                  onChange={handleInputChange('personalAnniversary')}
+                  onChange={handleInputChange("personalAnniversary")}
                 />
-                <p className="text-xs text-gray-500">Wedding, relationship, or other personal milestone</p>
+                <p className="text-xs text-gray-500">
+                  Wedding, relationship, or other personal milestone
+                </p>
               </div>
 
               {/* Department and Team */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="department" className="flex items-center gap-2">
+                  <Label
+                    htmlFor="department"
+                    className="flex items-center gap-2"
+                  >
                     <Briefcase className="w-4 h-4" />
                     Department
                   </Label>
@@ -314,7 +341,7 @@ export function Signup() {
                     type="text"
                     placeholder="Engineering"
                     value={formData.department}
-                    onChange={handleInputChange('department')}
+                    onChange={handleInputChange("department")}
                   />
                 </div>
 
@@ -328,7 +355,7 @@ export function Signup() {
                     type="text"
                     placeholder="Frontend"
                     value={formData.team}
-                    onChange={handleInputChange('team')}
+                    onChange={handleInputChange("team")}
                   />
                 </div>
               </div>
@@ -338,12 +365,12 @@ export function Signup() {
                 disabled={loading}
                 className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 text-lg"
               >
-                {loading ? 'Creating Account...' : 'Create Account 🚀'}
+                {loading ? "Creating Account..." : "Create Account 🚀"}
               </Button>
 
               <div className="text-center">
                 <p className="text-sm text-gray-600">
-                  Already have an account?{' '}
+                  Already have an account?{" "}
                   <Link
                     to="/login"
                     className="text-purple-600 hover:text-purple-800 underline"
