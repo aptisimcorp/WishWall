@@ -9,7 +9,8 @@ export default function WhiteboardList() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/whiteboard")
+    const API_URL = import.meta.env.VITE_API_URL || "";
+    fetch(`${API_URL}/whiteboard`)
       .then((res) => res.json())
       .then((data) => {
         setWhiteboards(data);

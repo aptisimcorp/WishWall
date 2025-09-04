@@ -58,11 +58,16 @@ export function Dashboard() {
     whiteboards: 0,
     milestones: 0,
   });
+  const [whiteboards, setWhiteboards] = useState([]);
   useEffect(() => {
     const API_URL = import.meta.env.VITE_API_URL || "";
     fetch(`${API_URL}/counters`)
       .then((res) => res.json())
       .then((data) => setCounters(data))
+      .catch(() => {});
+    fetch(`${API_URL}/whiteboard`)
+      .then((res) => res.json())
+      .then((data) => setWhiteboards(data))
       .catch(() => {});
   }, []);
   // Dynamic upcoming milestones
@@ -210,7 +215,7 @@ export function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-blue-100 text-sm">Whiteboards</p>
-                  <p className="text-2xl">{counters.whiteboards}</p>
+                  <p className="text-2xl">{whiteboards.length}</p>
                   <p className="text-sm text-blue-100">Created</p>
                 </div>
                 <MessageSquare className="w-8 h-8 text-blue-200" />
