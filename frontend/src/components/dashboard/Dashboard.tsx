@@ -67,7 +67,13 @@ export function Dashboard() {
       .catch(() => {});
     fetch(`${API_URL}/whiteboard`)
       .then((res) => res.json())
-      .then((data) => setWhiteboards(data))
+      .then((data) => {
+        // Only keep boards with a title
+        const boardsWithTitle = Array.isArray(data)
+          ? data.filter((b) => b.title && b.title.trim() !== "")
+          : [];
+        setWhiteboards(boardsWithTitle);
+      })
       .catch(() => {});
   }, []);
   // Dynamic upcoming milestones
