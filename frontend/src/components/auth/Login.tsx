@@ -23,6 +23,9 @@ export function Login() {
     password: "",
   });
   const [errors, setErrors] = useState({});
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
@@ -66,6 +69,34 @@ export function Login() {
         ...prev,
         [field]: undefined,
       }));
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email.trim()) {
+      showError("Please enter your email above to reset password.");
+      return;
+    }
+    setForgotLoading(true);
+    setForgotSent(false);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || "";
+      const res = await fetch(`${API_URL}/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setForgotSent(true);
+        showSuccess("Email sent! Check your inbox to retrieve your password.");
+      } else {
+        showError(data.error || "Could not send email. Try again.");
+      }
+    } catch (err) {
+      showError("Could not send email. Try again.");
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -171,8 +202,16 @@ export function Login() {
                 <Link
                   to="#"
                   className="text-sm text-purple-600 hover:text-purple-800 underline block"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleForgotPassword();
+                  }}
                 >
-                  Forgot your password?
+                  {forgotLoading
+                    ? "Sending..."
+                    : forgotSent
+                    ? "Email sent!"
+                    : "Forgot your password?"}
                 </Link>
                 <p className="text-sm text-gray-600">
                   Don't have an account?{" "}

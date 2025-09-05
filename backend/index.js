@@ -11,6 +11,7 @@ import userRouter from "./routes/user.js";
 import profileRouter from "./routes/profile.js";
 import dashboardRouter from "./routes/dashboard.js";
 import whiteboardRouter from "./routes/whiteboard.js";
+import forgotRouter from "./routes/forgot.js";
 
 dotenv.config();
 
@@ -173,6 +174,7 @@ app.use("/api/users", userRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api", dashboardRouter);
 app.use("/api/whiteboard", whiteboardRouter);
+app.use("/api/forgot-password", forgotRouter); // Register forgot password route as /api/forgot-password
 
 // Server start is now delayed until Cosmos DB is initialized
 
